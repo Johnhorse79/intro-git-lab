@@ -1,0 +1,55 @@
+name: Label pull requests by branch name
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label-by-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add labels based on branch name
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            console.log(`Branch name: ${branch}`);
+
+            const labelsToAdd = [];
+
+            // feature branches → feature
+            if (branch.startsWith('feature/')) {
+              labelsToAdd.push('feature');
+            }
+
+            // bug fix branches → bug
+            if (branch.startsWith('fix/')) {
+              labelsToAdd.push('bug');
+            }
+
+            // documentation branches → documentation
+            if (branch.startsWith('docs/')) {
+              labelsToAdd.push('documentation');
+            }
+
+            // LearnToCloud course branches → learn-to-cloud
+            // e.g. week1/day2-intro-git-lab
+            if (branch.startsWith('week')) {
+              labelsToAdd.push('learn-to-cloud');
+            }
+
+            if (labelsToAdd.length === 0) {
+              console.log('No labels to add for this branch.');
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: labelsToAdd,
+            });
+
+            console.log(`Added labels: ${labelsToAdd.join(', ')}`);
